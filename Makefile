@@ -1,28 +1,9 @@
-ifeq '$(findstring ;,$(PATH))' ';'
-   detected_OS := linux
-	detected_arch := amd64
-else
-    detected_OS := $(shell uname | tr '[:upper:]' '[:lower:]' 2> /dev/null || echo Unknown)
-    detected_OS := $(patsubst CYGWIN%,Cygwin,$(detected_OS))
-    detected_OS := $(patsubst MSYS%,MSYS,$(detected_OS))
-    detected_OS := $(patsubst MINGW%,MSYS,$(detected_OS))
-	detected_arch := $(shell dpkg --print-architecture 2>/dev/null || amd64)
-endif
-
-#colors:
-B = \033[1;94m#   BLUE
-G = \033[1;92m#   GREEN
-Y = \033[1;93m#   YELLOW
-R = \033[1;31m#   RED
-M = \033[1;95m#   MAGENTA
-K = \033[K#       ERASE END OF LINE
-D = \033[0m#      DEFAULT
-A = \007#         BEEP
-
-APP=$(shell basename $(shell git remote get-url origin))
-REGESTRY := ghcr.io/yuandrk
+APP=$(shell basename -s .git $(shell git remote get-url origin))
+REGISTRY ?= ghcr.io/yuandrk
 VERSION=$(shell git describe --tags --abbrev=0)-$(shell git rev-parse --short HEAD)
-	
+TARGETOS=linux
+TARGETARCH=amd64
+
 format:
 	gofmt -s -w ./
 
@@ -36,36 +17,33 @@ test:
 	go test -v
 
 build: format get
-	@printf "$GDetected OS/ARCH: $R$(detected_OS)/$(detected_arch)$D\n"
-	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=$(detected_arch) go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
+	CGO_ENABLED=0 GOOS=$(TARGETOS) GOARCH=$(TARGETARCH) go build -v -o kbot -ldflags "-X="gitlab.com/yurii.andriuk/kbot/cmd.appVersion=${VERSION}
 
 linux: format get
-	@printf "$GTarget OS/ARCH: $Rlinux/$(detected_arch)$D\n"
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(detected_arch) go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
-	docker build --build-arg name=linux -t ${REGESTRY}/${APP}:${VERSION}-linux-$(detected_arch) .
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(TARGETARCH) go build -v -o kbot -ldflags "-X="gitlab.com/yurii.andriuk/kbot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=linux -t ${REGISTRY}/${APP}:${VERSION}-linux-${TARGETARCH} .
 
 windows: format get
-	@printf "$GTarget OS/ARCH: $Rwindows/$(detected_arch)$D\n"
-	CGO_ENABLED=0 GOOS=windows GOARCH=$(detected_arch) go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
-	docker build --build-arg name=windows -t ${REGESTRY}/${APP}:${VERSION}-windows-$(detected_arch) .
+	CGO_ENABLED=0 GOOS=windows GOARCH=$(TARGETARCH) go build -v -o kbot -ldflags "-X="gitlab.com/yurii.andriuk/kbot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=windows -t ${REGISTRY}/${APP}:${VERSION}-windows-$(TARGETARCH) .
 
 darwin:format get
-	@printf "$GTarget OS/ARCH: $Rdarwin/$(detected_arch)$D\n"
-	CGO_ENABLED=0 GOOS=darwin GOARCH=$(detected_arch) go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
-	docker build --build-arg name=darwin -t ${REGESTRY}/${APP}:${VERSION}-darwin-$(detected_arch) .
+	CGO_ENABLED=0 GOOS=darwin GOARCH=$(TARGETARCH) go build -v -o kbot -ldflags "-X="gitlab.com/yurii.andriuk/kbot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=darwin -t ${REGISTRY}/${APP}:${VERSION}-darwin-$(TARGETARCH) .
 
 arm: format get
-	@printf "$GTarget OS/ARCH: $R$(detected_OS)/arm$D\n"
-	CGO_ENABLED=0 GOOS=$(detected_OS) GOARCH=arm go build -v -o kbot -ldflags "-X="github.com/yuandrk/kbot/cmd.appVersion=${VERSION}
-	docker build --build-arg name=arm -t ${REGESTRY}/${APP}:${VERSION}-$(detected_OS)-arm .
+	CGO_ENABLED=0 GOOS=$(TARGETOS) GOARCH=arm go build -v -o kbot -ldflags "-X="gitlab.com/yurii.andriuk/kbot/cmd.appVersion=${VERSION}
+	docker build --build-arg name=arm -t ${REGISTRY}/${APP}:${VERSION}-$(TARGETOS)-arm .
 
 image: 
-	docker build . -t ${REGESTRY}/${APP}:${VERSION}-$(detected_OS)-$(detected_arch)
+	docker build . -t ${REGISTRY}/${APP}:${VERSION}-$(TARGETOS)-$(TARGETARCH)
 
 push:
-	docker push ${REGESTRY}/${APP}:${VERSION}-$(detected_OS)-$(detected_arch)
+	docker push ${REGISTRY}/${APP}:${VERSION}-$(TARGETOS)-$(TARGETARCH)
 
 clean:
 	@rm -rf kbot; \
 	IMG1=$$(docker images -q | head -n 1); \
 	if [ -n "$${IMG1}" ]; then  docker rmi -f $${IMG1}; else printf "$RImage not found$D\n"; fi
+
+

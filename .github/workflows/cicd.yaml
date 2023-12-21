@@ -1,0 +1,54 @@
+name: KBOT-CICD
+
+on: push
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Run test
+      run: make test
+
+    - name: 'Login to GitHub Container Registry'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.TOKEN_GIT }}
+
+    - name: Build & Push
+      run: make image push
+
+  cd:
+    name: CD
+    needs: ci
+    if: github.actor != 'github-actions[bot]' # Prevents loop by ignoring commits from GitHub Actions bot
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - run: echo "VERSION=$(git describe --tags --abbrev=0)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+    - uses: mikefarah/yq@master
+      with: 
+        cmd: yq -i '.image.tag=strenv(VERSION)' helm/values.yaml
+
+
+    - run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git commit -am "update version $VERSION"
+        git push
