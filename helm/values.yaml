@@ -1,0 +1,14 @@
+replicaCount: 1
+image:
+  registry: "ghcr.io"
+  repository: "yuandrk"
+  container: "kbot"
+  tag: "v1.0.2-e111309"
+  os: "linux"
+  arch: "amd64"
+secret:
+  name: "TELE_TOKEN"
+  tokenKey: "token"
+  tokenName: "kbot"
+securityContext:
+  privileged: true
