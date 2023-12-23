@@ -19,16 +19,16 @@ var (
 	TeleToken = os.Getenv("TELE_TOKEN")
 )
 
-var kbotCmd = &cobra.Command{
-	Use:     "kbot",
+var sbotCmd = &cobra.Command{
+	Use:     "sbot",
 	Aliases: []string{"start"},
-	Short:   "Start telegram kBot application",
+	Short:   "Start telegram sbot application",
 	Long: `A simple Telegram bot that can handle text messages.
 	You can write something to https://t.me/yuandrk_bot and sometimes it answer:)`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("kbot %s started\n", appVersion)
+		fmt.Printf("sbot %s started\n", appVersion)
 
-		kbot, err := telebot.NewBot(telebot.Settings{
+		sbot, err := telebot.NewBot(telebot.Settings{
 			URL:    "",
 			Token:  TeleToken,
 			Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
@@ -38,7 +38,7 @@ var kbotCmd = &cobra.Command{
 			log.Fatalf("please check TELE_TOKEN env variable, %s", err)
 		}
 
-		kbot.Handle(telebot.OnText, func(ctx telebot.Context) error {
+		sbot.Handle(telebot.OnText, func(ctx telebot.Context) error {
 			log.Println(ctx.Message().Payload, ctx.Text())
 			payload := ctx.Message().Payload
 			answerStr := handlePayload(payload)
@@ -46,34 +46,34 @@ var kbotCmd = &cobra.Command{
 			return err
 		})
 
-		kbot.Handle(telebot.OnVoice, func(ctx telebot.Context) error {
+		sbot.Handle(telebot.OnVoice, func(ctx telebot.Context) error {
 			answerStr := "I don' have ears, so I can't hear you :)"
 			err = ctx.Send(answerStr)
 			return err
 		})
 
-		kbot.Handle(telebot.OnPhoto, func(ctx telebot.Context) error {
+		sbot.Handle(telebot.OnPhoto, func(ctx telebot.Context) error {
 			answerStr := "Nice picture... or not"
 			err = ctx.Send(answerStr)
 			return err
 		})
 
-		kbot.Handle(telebot.OnSticker, func(ctx telebot.Context) error {
+		sbot.Handle(telebot.OnSticker, func(ctx telebot.Context) error {
 			answerStr := "It's very funny, i think so"
 			err = ctx.Send(answerStr)
 			return err
 		})
 
-		kbot.Start()
+		sbot.Start()
 	},
 }
 
 func handlePayload(payload string) string {
 	switch strings.ToLower(payload) {
 	case "hello":
-		return fmt.Sprintf("Hello I'm Kbot %s", appVersion)
+		return fmt.Sprintf("Hello I'm sbot %s", appVersion)
 	case "version":
-		return fmt.Sprintf("Current kBot version %s", appVersion)
+		return fmt.Sprintf("Current sbot version %s", appVersion)
 	case "how are you?":
 		return "Thank you, I'm fine."
 	case "time":
@@ -85,5 +85,5 @@ func handlePayload(payload string) string {
 }
 
 func init() {
-	rootCmd.AddCommand(kbotCmd)
+	rootCmd.AddCommand(sbotCmd)
 }

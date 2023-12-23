@@ -1,4 +1,4 @@
-module github.com/yuandrk/kbot
+module github.com/yuandrk/sbot
 
 go 1.20
 

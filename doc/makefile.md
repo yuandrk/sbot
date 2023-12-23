@@ -1,4 +1,4 @@
-### Makefile Documentation for `kbot`
+### Makefile Documentation for `sbot`
 
 #### Variables
 
@@ -53,7 +53,7 @@ To use this Makefile, run `make [command]` where `[command]` is one of the provi
 * The versioning uses Git tags and commit hashes, so appropriate tags should be set in the repository for accurate versioning.
 * The `clean` command removes the most recent Docker image and may need to be used with caution.
 
-This Makefile provides a comprehensive set of commands for managing the lifecycle of the `kbot` application, from development to deployment.
+This Makefile provides a comprehensive set of commands for managing the lifecycle of the `sbot` application, from development to deployment.
 
 * * *
 
@@ -69,7 +69,7 @@ Certainly! Here's the documentation for your Makefile converted into Markdown fo
 
 * * *
 
-## Makefile Documentation for `kbot`
+## Makefile Documentation for `sbot`
 
 ### Variables
 

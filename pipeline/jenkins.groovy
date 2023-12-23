@@ -1,10 +1,10 @@
 pipeline {
     agent any
     environment {
-        REPO = 'https://github.com/yuandrk/kbot'
+        REPO = 'https://github.com/yuandrk/sbot'
         BRANCH = 'main'
         REGISTRY = 'ghcr.io/yuandrk'
-        APP = 'kbot'
+        APP = 'sbot'
         GHCR = 'https://ghcr.io'
 
     }

@@ -14,8 +14,8 @@ var appVersion = "Version"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Get actual version of kBot application",
-	Long:  `Returns version of Telegram kBot application`,
+	Short: "Get actual version of sbot application",
+	Long:  `Returns version of Telegram sbot application`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(appVersion)
 	},
