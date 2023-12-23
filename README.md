@@ -2,6 +2,7 @@
 
 ####  documentation in process 
 
+#### Try using this telegram bot https://t.me/yuandrk_bot
 
 This simple Go-based Telegram bot allows you to capture incoming messages and log them into a CSV file. 
 Useful for logging or archiving conversations and messages received on Telegram.
