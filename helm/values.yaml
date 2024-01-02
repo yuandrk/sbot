@@ -3,7 +3,7 @@ image:
   registry: "ghcr.io"
   repository: "yuandrk"
   container: "sbot"
-  tag: "v1.0.1-fc6e963"
+  tag: "v1.0.1-7d50342"
   os: "linux"
   arch: "amd64"
 secret:
