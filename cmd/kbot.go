@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -10,15 +11,56 @@ import (
 
 	"github.com/spf13/cobra"
 	telebot "gopkg.in/telebot.v3"
+
+	"github.com/hirosassa/zerodriver"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 )
 
 var (
+	// Tele token for telegram bot
 	TeleToken = os.Getenv("TELE_TOKEN")
+	// MetricsHost exporter host:port
+	MetricsHost = os.Getenv("METRICS_HOST")
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
-	rootCmd.AddCommand(sbotCmd)
+func initMetrics(ctx context.Context) {
+
+	// Create a new OTLP Metric gRPC exporter with the specified endpoint and options
+	exporter, _ := otlpmetricgrpc.New(
+		ctx,
+		otlpmetricgrpc.WithEndpoint(MetricsHost),
+		otlpmetricgrpc.WithInsecure(),
+	)
+
+	// Define the resource with attributes that are common to all metrics.
+	// labels/tags/resources that are common to all metrics.
+	resource := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String(fmt.Sprintf("sbot_%s", appVersion)),
+	)
+
+	// Create a new MeterProvider with the specified resource and reader
+	mp := sdkmetric.NewMeterProvider(
+		sdkmetric.WithResource(resource),
+		sdkmetric.WithReader(
+			// collects and exports metric data every 10 seconds.
+			sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(10*time.Second)),
+		),
+	)
+
+	// Set the global MeterProvider to the newly created MeterProvider
+	otel.SetMeterProvider(mp)
+
+}
+
+func pmetrics(ctx context.Context, payload string) {
+	meter := otel.GetMeterProvider().Meter("sbot_message")
+	counter, _ := meter.Int64Counter(fmt.Sprintf("sbot_massword_%s", payload))
+	counter.Add(ctx, 1)
 }
 
 var sbotCmd = &cobra.Command{
@@ -28,17 +70,27 @@ var sbotCmd = &cobra.Command{
 	Long: `A simple Telegram bot that can handle text messages.
 	You can write something to https://t.me/yuandrk_bot and sometimes it answers :)`,
 	Run: func(cmd *cobra.Command, args []string) {
+		logger := zerodriver.NewProductionLogger()
+
 		sbot, err := telebot.NewBot(telebot.Settings{
 			Token:  TeleToken,
 			Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
 		})
 
 		if err != nil {
-			log.Fatalf("Error creating bot, please check TELE_TOKEN env variable: %s", err)
+			logger.Fatal().Str("Error", err.Error()).Msg("Please check TELE_TOKEN")
 			return
+		} else {
+			logger.Info().Str("Version", appVersion).Msg("sbot started")
+
 		}
 
 		sbot.Handle("/start", func(c telebot.Context) error {
+			logger.Info().Str("Payload", c.Text()).Msg(c.Message().Payload)
+
+			payload := c.Message().Payload
+			pmetrics(context.Background(), payload)
+
 			menu := &telebot.ReplyMarkup{
 				ReplyKeyboard: [][]telebot.ReplyButton{
 					{{Text: "hello"}, {Text: "how are you"}},
@@ -49,6 +101,7 @@ var sbotCmd = &cobra.Command{
 		})
 
 		sbot.Handle(telebot.OnText, func(c telebot.Context) error {
+
 			response := handlePayload(c.Message().Text)
 			err := c.Send(response) // Send returns only error
 			if err != nil {
@@ -96,4 +149,11 @@ func generatePassword() string {
 		}
 	}
 	return string(password)
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
+	rootCmd.AddCommand(sbotCmd)
+	ctx := context.Background()
+	initMetrics(ctx)
 }
