@@ -21,9 +21,7 @@ import (
 )
 
 var (
-	// Tele token for telegram bot
-	TeleToken = os.Getenv("TELE_TOKEN")
-	// MetricsHost exporter host:port
+	TeleToken   = os.Getenv("TELE_TOKEN")
 	MetricsHost = os.Getenv("METRICS_HOST")
 )
 
@@ -47,8 +45,8 @@ func initMetrics(ctx context.Context) {
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithResource(resource),
 		sdkmetric.WithReader(
-			// collects and exports metric data every 10 seconds.
-			sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(10*time.Second)),
+			// collects and exports metric data every 5 seconds.
+			sdkmetric.NewPeriodicReader(exporter, sdkmetric.WithInterval(5*time.Second)),
 		),
 	)
 
@@ -58,9 +56,19 @@ func initMetrics(ctx context.Context) {
 }
 
 func pmetrics(ctx context.Context, payload string) {
-	meter := otel.GetMeterProvider().Meter("sbot_message")
-	counter, _ := meter.Int64Counter(fmt.Sprintf("sbot_massword_%s", payload))
+	// Get the global MeterProvider and create a new Meter with the name "kbot_light_signal_counter"
+	meter := otel.GetMeterProvider().Meter("sbot_light_signal_counter")
+
+	// Get or create an Int64Counter instrument with the name "kbot_light_signal_<payload>"
+	counter, _ := meter.Int64Counter(fmt.Sprintf("sbot_light_signal_%s", payload))
+
+	// Add a value of 1 to the Int64Counter
 	counter.Add(ctx, 1)
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
+	rootCmd.AddCommand(sbotCmd)
 }
 
 var sbotCmd = &cobra.Command{
@@ -73,6 +81,7 @@ var sbotCmd = &cobra.Command{
 		logger := zerodriver.NewProductionLogger()
 
 		sbot, err := telebot.NewBot(telebot.Settings{
+			URL:    "",
 			Token:  TeleToken,
 			Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
 		})
@@ -82,7 +91,6 @@ var sbotCmd = &cobra.Command{
 			return
 		} else {
 			logger.Info().Str("Version", appVersion).Msg("sbot started")
-
 		}
 
 		sbot.Handle("/start", func(c telebot.Context) error {
@@ -101,6 +109,10 @@ var sbotCmd = &cobra.Command{
 		})
 
 		sbot.Handle(telebot.OnText, func(c telebot.Context) error {
+			logger.Error().Str("Payload", c.Text()).Msg(c.Message().Payload)
+
+			payload := c.Message().Payload
+			pmetrics(context.Background(), payload)
 
 			response := handlePayload(c.Message().Text)
 			err := c.Send(response) // Send returns only error
@@ -152,8 +164,7 @@ func generatePassword() string {
 }
 
 func init() {
-	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
-	rootCmd.AddCommand(sbotCmd)
 	ctx := context.Background()
 	initMetrics(ctx)
+	rootCmd.AddCommand(sbotCmd)
 }
