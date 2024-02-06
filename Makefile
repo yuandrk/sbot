@@ -38,10 +38,6 @@ arm: format get
 image: 
 	docker build . --build-arg TARGETARCH=$(TARGETARCH) -t ${REGISTRY}/${APP}:${VERSION}-$(TARGETOS)-$(TARGETARCH) 
 
-### docker login ?
-### export CR_PAT=YOUR_TOKEN
-### echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
-
 push:
 	docker push ${REGISTRY}/${APP}:${VERSION}-$(TARGETOS)-$(TARGETARCH)
 
